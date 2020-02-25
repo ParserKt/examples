@@ -36,7 +36,7 @@ repositories {
   maven { url "https://jitpack.io" }
 }
 dependencies {
-  commonMainImplementation "com.github.parserkt:parserkt:1.1"
+  commonMainImplementation "com.github.parserkt:parserkt:1.1" // for Kotlin-multiplatform metadata
   commonMainImplementation "com.github.parserkt.parserkt:parserkt-ext:1.1"
 }
 
@@ -50,8 +50,12 @@ dependencies {
 task shadowJar(type: ShadowJar, dependsOn: [jvmJar]) {
   baseName = project.name.capitalize()
   manifest {}
-  minimize()
+  def projects =  ["simple", "known", "extended"].collect { project("${it}Syntax") } + project("hanCalc")
+  minimize {
+    projects.forEach { exclude(project(it.name)) }
+  }
 
-  from jvmJar.archiveFile
-  configurations = [project.configurations.jvmRuntimeClasspath]
+  from projects.collect { it.jvmJar.archiveFile }
+  from projects.collect { it.jsJar.archiveFile }
+  configurations.add(project.configurations.jvmRuntimeClasspath)
 }
