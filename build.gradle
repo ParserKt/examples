@@ -12,7 +12,7 @@ kotlin {
 }
 
 repositories { jcenter() }
-ext.kotlin = { name -> return "org.jetbrains.kotlin:$name-gradle-plugin:1.3.61" }
+ext.kotlin = { name -> return "org.jetbrains.kotlin:kotlin-$name:1.3.61" }
 
 dependencies {
   commonMainImplementation kotlin("stdlib-common")
@@ -23,6 +23,13 @@ dependencies {
   commonTestImplementation kotlin("test-annotations-common")
   jvmTestImplementation kotlin("test-junit")
   jsTestImplementation kotlin("test-js")
+}
+
+repositories {
+  maven { url 'https://jitpack.io' }
+}
+dependencies {
+  commonMainImplementation "com.github.parserkt:parserkt:1.1"
 }
 
 }
