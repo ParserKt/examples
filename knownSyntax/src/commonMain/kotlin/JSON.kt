@@ -58,9 +58,9 @@ typealias Bool = kotlin.Boolean
 typealias Num = kotlin.Number
 typealias Str = kotlin.String
 
-typealias JSON = JSONParser.Json<*>
+typealias JSON = AbstractJSONParser.Json<*>
 
-object JSONParser: JSONLexical() {
+abstract class AbstractJSONParser: JSONLexical() {
 lateinit var json: Pattern<Char, JSON>
 sealed class Json<T: Any>(override val v: T): ConvertAs.Box<T>, AnyBy(v) {
   object Null: Json<Unit>(Unit) { override fun toString() = "null" }
@@ -106,10 +106,5 @@ json = Decide(num typed { Json.Number(it) },
   is Json.Array -> 2
   is Json.Object -> 3
 } }
-}
-
-@JvmStatic fun main(vararg args: String) {
-  val parsed = json.read(CharInput.STDIN)
-  println(parsed); println(json.show(parsed))
 }
 }

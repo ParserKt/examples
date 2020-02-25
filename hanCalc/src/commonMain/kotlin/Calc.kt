@@ -6,7 +6,7 @@ import org.parserkt.pat.complex.*
 import org.parserkt.pat.ext.*
 import org.parserkt.util.*
 
-object Calc: LexicalBasics() {
+abstract class AbstractHanCalc: LexicalBasics() {
 val wsLn = stringFor(elementIn(' ', '\t')).toConstant("")
 
 val hexPart = Repeat(asInt(16), hex)
@@ -45,16 +45,9 @@ internal fun fn(join: InfixJoin<Int>): InfixJoin<Number> = { a, b -> join(a.toIn
 
   init {
     val duoLine = int prefix item('\n')
-    expr = object: InfixPattern<Char, Number>(atom, ops) {
-      override fun rescue(s: Feed<Char>, base: Number, op1: InfixOp<Number>) = duoLine.read(s) ?: notParsed.also { s.error("expecting rhs for $base $op1") }
+    expr = InfixPattern(atom, ops).Rescue { s, base, op1 ->
+      print("|")
+      duoLine.read(s) ?: notParsed.also { s.error("expecting rhs for $base $op1") }
     }
-  }
-  @JvmStatic fun main(vararg args: String) {
-    fun ps1() = print("> ")
-    ps1()
-    val input = CharInput.STDIN
-    val repl = JoinBy(item('\n'), expr).OnItem { println("= $it"); ps1() }
-    val calcLogs = input.catchError { repl.read(input) }
-    println(calcLogs)
   }
 }

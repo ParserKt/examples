@@ -4,7 +4,7 @@ import org.parserkt.pat.complex.*
 import org.parserkt.pat.ext.*
 import org.parserkt.util.*
 
-object Hosts: LexicalBasics() {
+abstract class AbstractHosts: LexicalBasics() {
 //comment: COMMENT;
 val nl = Seq(::CharTuple, item('\r').toDefault(), item('\n')).toStringPat()
 val nlChar = elementIn('\r', '\n')
@@ -52,8 +52,4 @@ sealed class Line {
   object Unknown: Line()
 }
 
-@JvmStatic fun main(vararg args: String) {
-  val hs = hosts.read(CharInput.STDIN)
-  println(hs)
-}
 }

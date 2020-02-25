@@ -5,7 +5,7 @@ import org.parserkt.pat.ext.LexicalBasics
 import org.parserkt.pat.ext.LayoutPattern
 import org.parserkt.util.*
 
-object LayoutInts: LexicalBasics() {
+abstract class AbstractLayoutInts: LexicalBasics() {
 val item = numInt
 val tail = Seq(::CharTuple, item('-'),item('>')).toStringPat()
 val layout = Convert(Repeat(asString(), item(' ')).Many() prefix item('\n'), { it.length }, { "".padStart(it) })

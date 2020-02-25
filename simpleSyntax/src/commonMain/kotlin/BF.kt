@@ -3,7 +3,7 @@ import org.parserkt.pat.*
 import org.parserkt.pat.complex.*
 import org.parserkt.util.*
 
-object BrainFuck {
+abstract class AbstractBrainFuck {
 sealed class BF {
   data class Op(val id: Char): BF() { override fun toString() = "Op($id)" }
   data class Blk(val body: List<BF>): BF() { override fun toString() = "Blk[${body.joinToString(" ")}]" }
@@ -20,8 +20,4 @@ init {
   program = Convert(Seq(::AnyTuple, ws, part, ws), { it.getAs<List<BF>>(1) }, { anyTupleOf("",it,"") })
 }
 
-@JvmStatic fun main(vararg args: String) {
-  val repl = JoinBy(item('\n'), Decide(program, StickyEnd(EOF, notParsed)).mergeFirst {0}).OnItem(::println).mergeConstantJoin()
-  repl.read(CharInput.STDIN)?.let { println(repl.show(it)) }
-}
 }

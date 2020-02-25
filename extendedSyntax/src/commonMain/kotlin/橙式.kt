@@ -10,8 +10,8 @@ fun KeywordPattern<String>.greedy() = Piped(this) { it ?: //FIXME is not possibl
 }
 
 /* Lexer-like algorithm，注意如果要允许翻译则得为维护 TriePattern 的反向映射建立新类，故直接用了 Pattern.show */
-object ChengForm: LexicalBasics() {
-  const val 钱符 = '￥'; const val 全角空格 = "　"
+abstract class AbstractChengForm: LexicalBasics() {
+  open val 钱符 = '￥'; open val 全角空格 = "　"
 
   val 钱 = item(钱符)
   val 钱钱 = SurroundBy(clamly(钱 to 钱), Until(钱, asString(), anyChar))
@@ -32,16 +32,6 @@ object ChengForm: LexicalBasics() {
 
   val 橙式构词 = Decide(不翻译, 翻译).mergeFirst { if (it[0] == '+') 1 else 0 }
   val 橙式 = Until(EOF, asList(), 橙式构词)
-
-  @JvmStatic fun main(vararg args: String) {
-    val reverse = args.firstOrNull()?.equals("reverse") ?: false
-    val noReverse = args.firstOrNull()?.equals("noReverse") ?: false
-    print(
-      if (reverse) 橙式.show(CharInput.STDIN.readText().split(全角空格))
-      else 橙式.read(CharInput.STDIN.withState(ExpectClose()))?.let { kws ->
-        if (noReverse) kws.joinToString("", transform = { it.drop(1) }) else kws.joinToString(全角空格)
-      })
-  }
 }
 
 infix fun Pattern<Char, String>.addPrefix(prefix: String) = Convert(this, { prefix + it }, { it.drop(prefix.length) })
