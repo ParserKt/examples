@@ -33,7 +33,7 @@ object HanNum: NumUnitTrie<Char, Int>(hanDigit, hanUnit, IntOps) {
   override fun joinUnits(s: Feed<Char>, u0: NumUnit<Int, Char>, u1: NumUnit<Int, Char>, acc: Int, i: Int): Int {
     val (nk1, name1) = u0; val (nk2, name2) = u1
     val k1 = abs(nk1); val k2 = abs(nk2)
-    val showUnits by lazy { "$name1($k1) => $name2($k2)" }
+    val showUnits by lazy { "${name1.joinToString("")}($k1) => ${name2.joinToString("")}($k2)" }
     if (!isZsep(name1)) when {
       k1 > (k2*10) -> s.error("missing seprator 零: $showUnits") //三千一
       k1 < k2 && i != (-1) -> s.error("missing ascending seprator 零: $showUnits") //三百二千
@@ -46,7 +46,7 @@ object HanNum: NumUnitTrie<Char, Int>(hanDigit, hanUnit, IntOps) {
       }
       k1 < k2 -> op.times(k2, op.plus(i, acc)) //一十二万
       k1 > k2 -> op.plus(op.times(k2, i), acc) //三千一百
-      k1 == k2 -> acc.also { s.error("dup units $name1($k1)") }
+      k1 == k2 -> acc.also { s.error("dup units ${name1.joinToString("")}($k1)") }
       else -> impossible()
     }
   }

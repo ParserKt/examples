@@ -1,4 +1,5 @@
 import org.parserkt.*
+import org.parserkt.pat.show
 
 object JSONParser: AbstractJSONParser() {
   @JvmStatic fun main(vararg args: String) {

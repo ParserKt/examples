@@ -3,7 +3,7 @@ import org.parserkt.pat.*
 import org.parserkt.pat.complex.*
 import org.parserkt.util.*
 
-abstract class AbstractBrainFuck {
+abstract class AbstractBF {
 sealed class BF {
   data class Op(val id: Char): BF() { override fun toString() = "Op($id)" }
   data class Blk(val body: List<BF>): BF() { override fun toString() = "Blk[${body.joinToString(" ")}]" }

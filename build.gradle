@@ -5,13 +5,16 @@ buildscript {
   dependencies {
     classpath "com.github.jengelman.gradle.plugins:shadow:5.2.0"
   }
+  ext {
+    pktVersion = "1.1"
+  }
 }
 
 plugins {
   id "kotlin-multiplatform" version "1.3.61"
 }
 
-allprojects {
+subprojects {
 apply plugin: "kotlin-multiplatform"
 apply plugin: "com.github.johnrengelman.shadow"
 kotlin {
@@ -36,26 +39,26 @@ repositories {
   maven { url "https://jitpack.io" }
 }
 dependencies {
-  commonMainImplementation "com.github.parserkt:parserkt:1.1" // for Kotlin-multiplatform metadata
-  commonMainImplementation "com.github.parserkt.parserkt:parserkt-ext:1.1"
-}
-
-}
-
-dependencies {
-  commonMainImplementation project("hanCalc")
-  ["simple", "known", "extended"].forEach { commonMainImplementation project("${it}Syntax") }
+  ["", "-util", "-ext"].forEach {
+    commonMainImplementation "com.github.parserkt.parserkt:parserkt$it-metadata:$pktVersion"
+    jvmMainImplementation "com.github.parserkt.parserkt:parserkt$it-jvm:$pktVersion"
+    jsMainImplementation "com.github.parserkt.parserkt:parserkt$it-js:$pktVersion"
+  }
 }
 
 task shadowJar(type: ShadowJar, dependsOn: [jvmJar]) {
   baseName = project.name.capitalize()
   manifest {}
-  def projects =  ["simple", "known", "extended"].collect { project("${it}Syntax") } + project("hanCalc")
-  minimize {
-    projects.forEach { exclude(project(it.name)) }
-  }
 
-  from projects.collect { it.jvmJar.archiveFile }
-  from projects.collect { it.jsJar.archiveFile }
+  from jvmJar
   configurations.add(project.configurations.jvmRuntimeClasspath)
+}
+
+build.dependsOn(shadowJar)
+
+} //subprojects
+
+dependencies {
+  commonMainImplementation project("hanCalc")
+  ["simple", "known", "extended"].forEach { commonMainImplementation project("${it}Syntax") }
 }
