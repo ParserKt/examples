@@ -1,11 +1,11 @@
 buildscript {
-  ext { pktVersion = "1.1" }
+  ext { pktVersion = "1.2" }
 }
 plugins {
   id "kotlin-multiplatform" version "1.3.61"
 }
 
-subprojects {
+allprojects {
 apply plugin: "kotlin-multiplatform"
 kotlin {
   jvm(); js()
@@ -36,11 +36,10 @@ dependencies {
   }
 }
 
-////
 def gradleDir = new File(rootProject.projectDir, "gradle")
 apply from: new File(gradleDir, "kotlin_minimize.gradle")
 
-} //subprojects
+} //allprojects
 
 dependencies {
   commonMainImplementation project("hanCalc")
