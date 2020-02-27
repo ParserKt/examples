@@ -1,3 +1,6 @@
+package example
+import AbstractMapSyntax
+
 import org.parserkt.*
 import org.parserkt.pat.*
 

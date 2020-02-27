@@ -1,3 +1,6 @@
+package example
+import AbstractHanCalc
+
 import org.parserkt.*
 import org.parserkt.pat.*
 import org.parserkt.pat.complex.JoinBy

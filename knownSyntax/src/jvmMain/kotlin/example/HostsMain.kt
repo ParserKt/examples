@@ -1,3 +1,6 @@
+package example
+import AbstractHosts
+
 import org.parserkt.*
 
 object Hosts: AbstractHosts() {

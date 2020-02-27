@@ -1,3 +1,6 @@
+package example
+import AbstractArithmetic
+
 import org.parserkt.*
 import org.parserkt.pat.*
 

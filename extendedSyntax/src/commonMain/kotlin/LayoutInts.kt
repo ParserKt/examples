@@ -9,7 +9,7 @@ abstract class AbstractLayoutInts: LexicalBasics() {
 val item = numInt
 val tail = Seq(::CharTuple, item('-'),item('>')).toStringPat()
 val layout = Convert(Repeat(asString(), item(' ')).Many() prefix item('\n'), { it.length }, { "".padStart(it) })
-val p = LayoutPattern(item, tail, layout)
+val ints = LayoutPattern(item, tail, layout)
 
 val slash = item('/')
 val comment = Seq(::StringTuple, elementIn('#', ';').toStringPat(), *anyChar until newlineChar)

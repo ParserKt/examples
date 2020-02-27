@@ -1,0 +1,36 @@
+buildscript {
+  repositories { jcenter() }
+  dependencies {
+    classpath "com.github.jengelman.gradle.plugins:shadow:5.2.0"
+    classpath "net.sf.proguard:proguard-gradle:6.2.2"
+  }
+}
+
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import proguard.gradle.ProGuardTask
+
+def javaHome = System.getProperty("java.home")
+def javaVersionMajor = System.getProperty("java.specification.version").toInteger()
+
+task shadowJar(type: ShadowJar, dependsOn: [jvmJar]) {
+  baseName = project.name.capitalize()
+  manifest {}
+  exclude "**/*.kotlin_metadata"
+  exclude "**/*.kotlin_builtins"
+
+  from jvmJar
+  configurations.add(project.configurations.jvmRuntimeClasspath)
+}
+
+task proguardJar(type: ProGuardTask, dependsOn: [shadowJar]) {
+  keep "public class example.* { public static void main(java.lang.String[]); }"
+  def name = project.name.capitalize()
+  injars(new File(project.libsDir, "${name}.jar"))
+  outjars(new File(project.libsDir, "${name}-s.jar"))
+  if (javaVersionMajor >= 9) libraryjars("${javaHome}/jmods/java.base.jmod")
+
+  dontobfuscate()
+  dontwarn("kotlin.**")
+}
+
+build.dependsOn(proguardJar)

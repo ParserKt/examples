@@ -1,7 +1,9 @@
+package example
+import AbstractBF
+
 import org.parserkt.*
 import org.parserkt.pat.*
 import org.parserkt.pat.complex.*
-
 
 object BF: AbstractBF() {
   @JvmStatic fun main(vararg args: String) {

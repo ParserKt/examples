@@ -1,3 +1,6 @@
+package example
+import AbstractJSONParser
+
 import org.parserkt.*
 import org.parserkt.pat.show
 
