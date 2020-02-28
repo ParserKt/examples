@@ -74,6 +74,8 @@ dependencies {
 
 ParserKt is about sequence input — `Feed<T>` and `Pattern<IN, T>` extracting data from input.
 
+ParserKt can also do "rebuild" — re-structure input sequence back from parse result, for this reason, combinators e.g. `Decide` should use `mergeFirst`/`discardFirst` to get `caseNo` <a href="#About_mergeXXX">back</a> from output value.
+
 ```kotlin
 interface Feed<out T> {
   val peek: T
@@ -130,6 +132,7 @@ import org.parserkt.*
 import org.parserkt.util.*
 import org.parserkt.pat.*
 import org.parserkt.pat.complex.*
+import org.parserkt.pat.ext.*
 ```
 
 ### Atom pattern definition "IES"
@@ -178,6 +181,8 @@ StickyEnd(pat_may_occur_again_in_peek, result_value_is_end, op_not_end = {notPar
 
 for detailed designment about sticky end, see [FeedModel.kt](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/FeedModel.kt#L31)
 
+> If you don't run operation decide only by `peek` (and never `consume`), `StickyEnd` is not a problem
+
 ### Combined pattern "SURD"
 
 > "SURD" means Seq, __Until, Repeat__, Decide [CombSURD.kt](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/CombSURD.kt)
@@ -191,12 +196,150 @@ val _2char = Seq(::CharTuple, anyChar, anyChar)
 _2char.read("a") //notParsed
 _2char.read("ab") //(a, b)
 
-val
+val untilDash = Seq(::StringTuple, *item<Char>()/*=anyChar*/ until item('-'))
+untilDash.read("h") //notParsed
+untilDash.read("helloworld-") //(helloworld, -)
+```
+
+#### Operations on `Tuple`
+
+> See [parserkt-util:ArrangementModel.kt](https://github.com/ParserKt/ParserKt/blob/master/parserkt-util/src/commonMain/kotlin/org/parserkt/util/ArrangeModel.kt) for more operations
+
+```kotlin
+class Point: IntTuple(2) {
+  var x by index(0)
+  var y by index(1)
+}
+val int = Repeat(asInt(), LexicalBasics.digitFor('0'..'9'))
+val point = SurroundBy(parens.toCharPat(), Seq(::Point, int suffix item(','), int))
+
+point.read("(123,43)") //(123, 43) //Point
+
+//TODO: Seq will discard constant pattern items [veto]
+// reason: not suitable for type system
+//TODO: add Pattern.clam() [WIP]
+// quest: non-necessary since there are already LexicalBasics.clamly
+```
+
+```kotlin
+// Typed tuples: Int,Long,Float,Double,Char,String are provided
+tupleOf(::IntTuple, 1,2,3) //(1, 2, 3)
+val (a,b) = tupleOf(::IntTuple, 1,2)
+
+// Dynamic tuples: AnyTuple
+val t = anyTupleOf("hello", 1)
+t.getAs<Int>(1) //1
+
+class Student: AnyTuple(2) {
+  val name by indexAs<String>(0)
+  var age by indexAs<Int>(1)
+}
+Student() //(null, null)
+val john = tupleOf(::Student, "john", 17)
+john.age++ //17
+john //(john, 18)
+```
+
+#### `Until` and `Repeat`
+
+Until: zero or more `item` until `terminate`(could be tested with 1 char) is parsed
+
+> __Remeber__, ParserKt has no capacity for resetting input stream back
+
+> NOTE: Never use `Until(terminate, fold pat)` when `Repeat(fold, !pat)` is sufficient
+
+```kotlin
+object Ints: LexicalBasics() {
+  val int = numInt
+  val ints = Repeat(asList(), int suffix item(' '))
+  val note = Until(int, asString(), white)
+  //^ not a goot approach
+}
+
+Ints.ints.read("10 20 30 45 ") //[10, 20, 30, 45]
+Ints.note.rebuild(" \t\n233 666 ")?.rawString() //" \t\n"
+```
+
+```kotlin
+open class StringPart: LexicalBasics() {
+  val escapes = mapOf('"' to '"', 'n' to '\n')
+  val bslash = item('\\')
+  val escape = MapPattern(escapes) prefix bslash
+  val char = Decide(anyChar and !(bslash or item('"')), escape).mergeFirst { if (it in escapes.values) 1 else 0 }
+  val string = SurroundBy(clamly(dquotes), Repeat(asString(), char))
+}
+
+StringPart().string.read("\"hello\\nworld\"") //"hello\nworld"
+```
+
+Inner class `Repeat.InBounds(bounds, greedy = true)` or `Repeat.Many()` is also avaliable. [source](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/CombSURD.kt#L99)
+
+#### Use `UntilUn`, `RepeatUn`
+
+`Fold` is a non-invertible operation (e.g. reading numbers by shifting), but providing an `unfold` operation back to `Iterable<IN>` will enable rebuilding for such fold-pattern
+
+Default unfold operation for `String` and `List` are provided
+
+```kotlin
+// Improve: use LexicalBasics.digitFor & pat.ext.asInt()
+val digit = Convert(elementIn('0'..'9'), { it-'0' }, { '0'+it })
+val asInt = JoinFold(0) { this*10 + it }
+
+val int = RepeatUn(asInt, digit) { i -> i.toString().map { it-'0' } }
+
+int.read("2019") //2019 //Int
+int.show(2019) //2019 //String
 ```
 
 ### Wrapper pattern "CCDP"
 
 > "CCDP" means Convert, Contextual, Deferred, Piped [WrapperCCDP.kt](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/WrapperCCDP.kt)
+
+> [pat/ext/MiscHelper.kt](https://github.com/ParserKt/ParserKt/blob/master/parserkt-ext/src/commonMain/kotlin/org/parserkt/pat/ext/MiscHelper.kt#L80), and `class ConvertAs` [source](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/WrapperCCDP.kt#L19)
+
+```kotlin
+fun digitFor(cs: CharRange, zero: Char = '0', pad: Int = 0): Convert<Char, Char, Int>
+  = Convert(elementIn(cs), { (it - zero) +pad }, { zero + (it -pad) })
+
+
+data class NameWrapper(override val v: String): ConvertAs.Box<String>
+val name = Repeat(asString(), elementIn('a'..'z')) typed ::NameWrapper
+
+name.read("nihao") //NameWrapper(v=nihao)
+name.rebuild("nihao") //nihao
+
+name.force<Char, NameWrapper/*T:T1*/, Any/*T1*/>().read("emmm") //NameWrapper(v=nihao) //Any
+
+// force() pattern must force-cast when show(v: Any)
+```
+
+> See [hanCalc:Calc.kt](https://github.com/ParserKt/examples/blob/master/hanCalc/src/commonMain/kotlin/Calc.kt#L15) for more
+
+```kotlin
+val sign = elementIn('+', '-').toDefault('+')
+val strPart = LexicalBasics.stringFor(anyChar)
+val str = Contextual(sign) { sign ->
+  if (sign != '+') Piped(strPart) { it?.reversed() }
+  else strPart
+}.discardFirst() //first=sign
+
+str.read("haha") //haha
+str.read("-haha") //ahah
+```
+
+> The main usage for `Deferred` is to create recursive syntax
+
+```kotlin
+// infite parens for (a)
+lateinit var a: Pattern<Char, String>
+val str = LexicalBasics.stringFor(!item(')'))
+val paren = SurroundBy(parens.toCharPat(), Deferred{a})
+a = Decide(paren, str).discardFirst()
+
+a.read("((hello))") //hello
+a.read("((a") //""
+//^ Decide fall-thru to str when ')' is missing, make right-paren clam() can explicit error
+```
 
 ### Complex patterns "SJIT"
 
@@ -204,7 +347,7 @@ val
 
 ### About `mergeXXX`
 
-ParserKt have many `Pattern<IN, Tuple2<A, B>>` — e.g. `Decide: ...<Int/*CaseNo*/, T>`, `Contextual: ...<A, B>`, `JoinBy: ...<ITEM, SEP>`
+<a id="About_mergeXXX">ParserKt</a> have many `Pattern<IN, Tuple2<A, B>>` — e.g. `Decide: ...<Int/*CaseNo*/, T>`, `Contextual: ...<A, B>`, `JoinBy: ...<ITEM, SEP>`
 
 But it's too complicated to create storage for them! So we can use `Convert`.
 
@@ -216,9 +359,13 @@ got.read("a") //a //Char
 got.rebuild("a") //a //String
 ```
 
-Why not to use `mergeFirst`/`mergeSecond`? And we can use `discardFirst`/`discardSecond` for patterns that no need to keep original informating
+Why not to use `mergeFirst`/`mergeSecond`? And we can also apply `discardFirst`/`discardSecond` for patterns that has no need to keep original informating
 
-— e.g. signed integer can be outputed directly via `toString`, without recursively call `Pattern.show`. [showBy](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/PatternModel.kt#L158) could be used for this approch.
+```kotlin
+val abc123 = Decide(elementIn('1'..'3'), elementIn('a'..'c')).mergeFirst { if (it in '1'..'3') 0 else 1 }
+```
+
+— e.g. signed integer can be outputed directly via `toString`, without recursively call `Pattern.show`. [showBy](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/PatternModel.kt#L158) could be used for this approach.
 
 ```kotlin
 val int = Repeat(asInt(), LexicalBasics.digitFor('0'..'9')).showByString { it.toString() }
@@ -226,7 +373,16 @@ int.read("12345") //12345 //Int
 int.rebuild("12345") //12345 //String
 ```
 
-There are also a operation named `flatten`
+There are also a operation named `flatten` [source](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/WrapperCCDP.kt#L68)
+
+```kotlin
+// pattern [a, a]
+val i2 = Seq(::IntTuple, *Contextual(item<Int>()) { item(it) }.flatten().items())
+
+i2.read(1,2) //notParsed
+i2.read(1,1) //(1, 1) //IntTuple
+i2.rebuild(1,1) //[1, 1] //List<Int>
+```
 
 ### Clam — Error handling
 
