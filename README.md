@@ -345,6 +345,116 @@ a.read("((a") //""
 
 > "SJIT" means SurroudBy, JoinBy, InfixPattern, TriePattern (`pat/complex/`) [AuxiliarySJ.kt](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/complex/AuxiliarySJ.kt) [InfixPattern](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/complex/InfixPattern.kt) [TriePattern.kt](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/complex/TriePattern.kt)
 
+#### SurroundBy
+
+> DSL operations: `Pattern.prefix`, `Pattern.suffix`
+
+```kotlin
+val dot2 = item('.') suffix item('.').toDefault().toConstant('.')
+
+dot2.read(".") == dot2.read("..") //true
+dot2.rebuild(".") //..
+```
+
+> NOTE: `OptionalPattern` is not `ConstantPattern`, constant pattern does not always parsed
+
+#### JoinBy
+
+```kotlin
+val comma = item(',')
+val list = JoinBy(comma, Repeat(asString(), !comma)).mergeConstantJoin()
+//^ NOTE: mergeConstantJoin supports constant item or depth-1 PatternWrapper
+
+list.read("hello,world") //[hello, world]
+```
+
+> Extensions: `mergeConstantJoin(value)`, `mergeConstantJoin()`, `concatCharJoin()`. [source](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/complex/AuxiliarySJ.kt#L84)
+
+#### Rescue and OnItem
+
+> See [hanCalc:Calc.kt](https://github.com/ParserKt/examples/blob/master/hanCalc/src/commonMain/kotlin/Calc.kt#L48)
+
+```kotlin
+val duoLine = int prefix item('\n')
+expr = InfixPattern(atom, ops).Rescue { s, base, op1 ->
+  print("|")
+  duoLine.read(s) ?: notParsed.also { s.error("expecting rhs for $base $op1") }
+}
+```
+
+```kotlin
+fun ps1() = print("> ")
+val input = CharInput.STDIN
+
+val line = Decide(expr, StickyEnd(EOF, 233)).discardFirst()
+val repl = JoinBy(item('\n'), line).OnItem { println("= $it"); ps1() }.mergeConstantJoin()
+```
+
+```bash
+java -cp build/libs/Examples-s.jar example.HanCalc
+> 360*
+|3
+= 1080
+> 一百加
+|三十乘
+|五
+= 250
+> = 233
+> [1080, 250, 233]
+```
+
+#### InfixPattern and TriePattern
+
+```kotlin
+object Calc: LexicalBasics() {
+  val ops = KeywordPattern<InfixOp<Int>>().apply {
+    register("+" infixl 0 join Int::plus)
+    register("-" infixl 0 join Int::minus)
+  }
+  val expr = InfixPattern(numInt, ops)
+}
+
+Calc.expr.read("1+2-3") //0
+Calc.expr.read("3+1") //4
+Calc.expr.show(9) //!UnsupportedOperationException: infix show
+
+// Precedence(-1, isRAssoc=false)
+// InfixOp<Int>("*", prec, Int::times)
+Calc.ops["*"] = "*" infixl (-1) join Int::times
+
+Calc.expr.read("1+2*3") //7
+```
+
+```kotlin
+sealed class Type {
+  data class Named(override val v: String): Type(), ConvertAs.Box<String>
+  data class Fn(val arg: String, val res: Type): Type()
+}
+
+val ops = KeywordPattern<InfixOp<Type>>().apply {
+  register("->" infixr 0 join { t, r -> Type.Fn((t as Type.Named).v, r) })
+}
+val upcase = elementIn('A'..'Z')
+val lowcase = elementIn('a'..'z')
+
+val typeId = LexicalBasics.run { prefix1(upcase, stringFor(upcase or lowcase)) }
+val _atomType = typeId typed { Type.Named(it) }
+val atomType: Pattern<Char, Type> = _atomType.force()
+
+val expr = InfixPattern(atomType, ops)
+```
+
+```kotlin
+expr.read("User") //Named(v=User)
+expr.read("Int->String->String") //Fn(arg=Int, res=Fn(arg=String, res=Named(v=String)))
+```
+
+See [Parserkt/README.md](https://github.com/ParserKt/ParserKt#more-runnable-repl-snippet) for examples about `TriePattern`.
+
+For detailed information about `MapPattern`/`TriePattern`/`PairedTriePattern`, see [source](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/complex/TriePattern.kt).
+
+> NOTE: In ParserKt, bi-directional mappings are __UNCHECKED__, taking reverse map for single-value-multiply-key `Map` is undefined behavior
+
 ### About `mergeXXX`
 
 <a id="About_mergeXXX">ParserKt</a> have many `Pattern<IN, Tuple2<A, B>>` — e.g. `Decide: ...<Int/*CaseNo*/, T>`, `Contextual: ...<A, B>`, `JoinBy: ...<ITEM, SEP>`
