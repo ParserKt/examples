@@ -1,8 +1,8 @@
 import org.parserkt.*
+import org.parserkt.util.*
 import org.parserkt.pat.*
 import org.parserkt.pat.complex.*
 import org.parserkt.pat.ext.LexicalBasics
-import org.parserkt.util.*
 
 abstract class AbstractArithmetic: LexicalBasics() {
   sealed class Exp {

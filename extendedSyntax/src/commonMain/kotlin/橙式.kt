@@ -1,8 +1,8 @@
 import org.parserkt.*
+import org.parserkt.util.*
 import org.parserkt.pat.*
 import org.parserkt.pat.complex.*
 import org.parserkt.pat.ext.LexicalBasics
-import org.parserkt.util.*
 
 fun KeywordPattern<String>.greedy() = Piped(this) { it ?: //FIXME is not possible
   try { takeWhile { it !in this@greedy.routes }.joinToString("").takeIf(String::isNotEmpty) }

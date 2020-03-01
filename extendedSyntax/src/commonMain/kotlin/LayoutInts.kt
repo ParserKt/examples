@@ -1,10 +1,10 @@
 import org.parserkt.*
+import org.parserkt.util.*
 import org.parserkt.pat.*
 import org.parserkt.pat.complex.*
 import org.parserkt.pat.ext.LexicalBasics
 import org.parserkt.pat.ext.LayoutPattern
 import org.parserkt.pat.ext.Deep
-import org.parserkt.util.*
 
 abstract class AbstractLayoutInts: LexicalBasics() {
 val item = numInt

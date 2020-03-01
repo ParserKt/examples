@@ -1,7 +1,7 @@
 import org.parserkt.*
+import org.parserkt.util.*
 import org.parserkt.pat.*
 import org.parserkt.pat.complex.*
-import org.parserkt.util.*
 
 abstract class AbstractBF {
 sealed class BF {

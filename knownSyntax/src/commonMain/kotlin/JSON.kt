@@ -1,8 +1,8 @@
 import org.parserkt.*
+import org.parserkt.util.*
 import org.parserkt.pat.*
 import org.parserkt.pat.complex.*
 import org.parserkt.pat.ext.*
-import org.parserkt.util.*
 
 abstract class StringLexical: LexicalBasics() {
 val escapes = mapOf('"' to '"', 't' to '\t', 'b' to '\b', 'n' to '\n', 'r' to '\r', '\\' to '\\')
