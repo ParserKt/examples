@@ -24,7 +24,7 @@ val hanUnit = PairedKeywordPattern<Int>().apply {
   // 反正没有负数系数的需要，使用时取绝对值无异。
 }
 
-object HanNum: NumUnitTrie<Char, Int>(hanDigit, hanUnit, IntOps) {
+object HanNum: TrieNumUnit<Char, Int>(hanDigit, hanUnit, IntOps) {
   init { hanShow = this::show }
   override fun read(s: Feed<Char>) = super.read(s).also { if (s.peek == '零') s.error("零 form cannot be used in tail part") }
 
