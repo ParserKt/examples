@@ -10,10 +10,11 @@ val hanDigits = "一二三四五六七八九".asIterable().map(Char::toString).z
 
 private lateinit var hanShow: (Output<Char>, Int?) -> Unit
 val hanDigit = object: KeywordPattern<Int>() {
-  init { mergeStrings(*hanDigits.toArray(), "" to -1) } //“又”比较特殊，只能以“三十又十”形式出现
+  init { mergeStrings("两" to 2, *hanDigits.toArray(), "" to -1) } //“又”比较特殊，只能以“三十又十”形式出现
   override fun show(s: Output<Char>, value: Int?) {
     if (value == null) return
-    if (value in 1..9) super.show(s, value) else { hanShow(s, value) }
+    val integer = abs(value)
+    if (integer in 1..9) super.show(s, integer) else { hanShow(s, integer) }
   }
 }
 val hanUnit = PairedKeywordPattern<Int>().apply {

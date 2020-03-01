@@ -5,6 +5,10 @@ plugins {
   id "kotlin-multiplatform" version "1.3.61"
 }
 
+ext.mainClasses = [
+  "hanCalc": "example.HanCalc"
+]
+
 allprojects {
 apply plugin: "kotlin-multiplatform"
 kotlin {

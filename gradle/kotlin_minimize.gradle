@@ -14,7 +14,8 @@ def javaVersionMajor = System.getProperty("java.specification.version").toIntege
 
 task shadowJar(type: ShadowJar, dependsOn: [jvmJar]) {
   baseName = project.name.capitalize()
-  manifest {}
+  def mainClasses = rootProject.ext.mainClasses
+  if (project.name in mainClasses) manifest { attributes "Main-Class": mainClasses[project.name] }
   exclude "**/*.kotlin_metadata"
   exclude "**/*.kotlin_builtins"
 

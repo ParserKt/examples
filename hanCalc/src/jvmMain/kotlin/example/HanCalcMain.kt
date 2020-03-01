@@ -15,6 +15,6 @@ object HanCalc: AbstractHanCalc() {
     val line = Decide(expr, StickyEnd(EOF, 233)).discardFirst()
     val repl = JoinBy(item('\n'), line).OnItem { println("= $it"); ps1() }.mergeConstantJoin()
     val calcLogs = input.catchError { repl.read(input) }
-    calcLogs?.mapNotNull { it?.toInt()?.let { hanNum.show(it) } }?.let(::println)
+    calcLogs?.mapNotNull { it.toInt().let { hanNum.show(it) } }?.let(::println)
   }
 }
