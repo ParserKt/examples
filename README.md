@@ -72,9 +72,9 @@ dependencies {
 
 ## Documents
 
-ParserKt is about sequence input — `Feed<T>` and `Pattern<IN, T>` extracting data from input.
+ParserKt is about `Feed<T>` sequence input, and `Pattern<IN, T>` extracting data from input.
 
-ParserKt can also do "rebuild" — re-structure input sequence back from parse result, for this reason, combinators e.g. `Decide` should use `mergeFirst`/`discardFirst` to get `caseNo` <a href="#About_mergeXXX">back</a> from output value.
+It can also perform a process called "rebuild" — re-structure input sequence back from parse result. for this reason, combinators e.g. `Decide` should use `mergeFirst`/`discardFirst` to retrieve `caseNo` <a href="#About_mergeXXX">back</a> from output value.
 
 ```kotlin
 interface Feed<out T> {
@@ -89,9 +89,11 @@ interface Pattern<IN, T> {
 }
 ```
 
+Sequential inputs are divied into subparts by sub-patterns. For matched inputs, `Pattern.read` will return de-structed value, otherwise it will return `null` (aka `notParsed`)
+
 _(some supertype are omitted for brevity)_
 
-> See [org.parserkt.pat](https://github.com/ParserKt/ParserKt/tree/master/src/commonMain/kotlin/org/parserkt/pat), basic model defined in [PatternModel.kt](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/PatternModel.kt)
+> See [org.parserkt.pat](https://github.com/ParserKt/ParserKt/tree/master/src/commonMain/kotlin/org/parserkt/pat), basic model is defined in [PatternModel.kt](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/PatternModel.kt)
 
 ```kotlin
 // == Patterns ==
@@ -242,9 +244,9 @@ john //(john, 18)
 
 #### `Until` and `Repeat`
 
-Until: zero or more `item` until `terminate`(could be tested with 1 char) is parsed
+Until: zero or more (also known as "many") `item` until `terminate`(could be tested with 1 char) is parsed
 
-> __Remeber__, ParserKt has no capacity for resetting input stream back
+> __Remeber__, ParserKt has __no capacity__ for resetting input stream back
 
 > NOTE: Never use `Until(terminate, fold pat)` when `Repeat(fold, !pat)` is sufficient
 
@@ -272,7 +274,7 @@ open class StringPart: LexicalBasics() {
 StringPart().string.read("\"hello\\nworld\"") //"hello\nworld"
 ```
 
-Inner class `Repeat.InBounds(bounds, greedy = true)` or `Repeat.Many()` is also avaliable. [source](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/CombSURD.kt#L99)
+Inner class `Repeat.InBounds(bounds, greedy = true)` and `Repeat.Many()` are also avaliable. [source](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/CombSURD.kt#L99)
 
 #### Use `UntilUn`, `RepeatUn`
 
@@ -523,7 +525,7 @@ num.readPartial("233") //([], [2, 3, 3])
 num.readPartial("   666") //([(<string>:1:0#0, number required)], [])
 ```
 
-we can make a pattern skip something when fails to match
+we can make a pattern skip something when it fails to match
 
 ```kotlin
 val num = Repeat(asString(), elementIn('0'..'9'))
@@ -535,15 +537,15 @@ JoinBy(item(','), element).mergeConstantJoin().readPartial("123,abc,-4232,a")
 //([(<string>:1:8#8, expecting element)], [123, abc, , a])
 ```
 
-you can also use it with `never()` (never parsed) / `always(value)` pseudo pattern.
+you can also use it with pseudo pattern `never()` (never parsed) and `always(value)`.
 
 ### Storing context in `Feed`s
 
 > See [PatternMisc.kt: interface State](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/PatternMisc.kt#L55)
 
-Use `Input<IN>.withState(value)` and `CharInput.withState(value)`
+Use `Input<IN>.withState(value)` and `CharInput.withState(value)` to create wrapper feed with certain `value` associated
 
-ParserKt provides many `Pattern` receiving `Feed<IN>.() -> ...` as argument, use `AllFeed.stateAs<ST>(): ST?` to acquire state
+ParserKt provides many `Pattern` receiving `Feed<IN>.() -> ...` as argument, use `AllFeed.stateAs<ST>(): ST?` to acquire state from `Feed<*>` instance.
 
 #### Modifing state with parse result
 
