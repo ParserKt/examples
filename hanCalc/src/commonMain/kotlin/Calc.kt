@@ -1,10 +1,10 @@
 import kotlin.math.abs
 
 import org.parserkt.*
+import org.parserkt.util.*
 import org.parserkt.pat.*
 import org.parserkt.pat.complex.*
 import org.parserkt.pat.ext.*
-import org.parserkt.util.*
 
 abstract class AbstractHanCalc: LexicalBasics() {
 val wsLn = stringFor(elementIn(' ', '\t')).toConstant("")
