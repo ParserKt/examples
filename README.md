@@ -28,7 +28,7 @@ dependencies {
 
 ### ...for multiplatform projects
 
-Since we are extracting the same part from more platforms, __it's a little more complicated__, for using multiplatform library in multiplatform projects.
+Since we are extracting the same part from more platforms, __it's a little more complicated__ for using multiplatform library in multiplatform projects.
 
 ```groovy
 dependencies {
@@ -53,7 +53,7 @@ dependencies {
 }
 ```
 
-> NOTE: Gradle metadata is a experimental feature, using even future release of Gradle != `5.6.2` may fail.<br>
+> NOTE: Gradle metadata is an __experimental feature__, using even future release of Gradle `!= 5.6.2` may fail.<br>
 If build configuration acts wrong with single-dependency, use old-style with `forEach` instead.
 
 ```kotlin
@@ -91,7 +91,7 @@ interface Pattern<IN, T> {
 
 Sequential inputs are divied into subparts by sub-patterns. For matched inputs, `Pattern.read` will return de-structed value, otherwise it will return `null` (aka `notParsed`)
 
-_(some supertype are omitted for brevity)_
+_(some super-types are omitted for brevity)_
 
 > See [org.parserkt.pat](https://github.com/ParserKt/ParserKt/tree/master/src/commonMain/kotlin/org/parserkt/pat), basic model is defined in [PatternModel.kt](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/PatternModel.kt)
 
@@ -193,6 +193,8 @@ for detailed designment about sticky end, see [FeedModel.kt](https://github.com/
 
 ~~absurd~~ memorizing tricks~
 
+For impreative program control flow, we have sequential-execution, branch condition, repeation. For pattern matching we have `Seq`, `Decide`, `Repeat`.
+
 ```kotlin
 val _2char = Seq(::CharTuple, anyChar, anyChar)
 _2char.read("a") //notParsed
@@ -217,10 +219,8 @@ val point = SurroundBy(parens.toCharPat(), Seq(::Point, int suffix item(','), in
 
 point.read("(123,43)") //(123, 43) //Point
 
-//TODO: Seq will discard constant pattern items [veto]
+// Seq will NOT discard constant pattern items
 // reason: not suitable for type system
-//TODO: add Pattern.clam() [WIP]
-// quest: non-necessary since there are already LexicalBasics.clamly
 ```
 
 ```kotlin
@@ -253,9 +253,9 @@ Until: zero or more (also known as "many") `item` until `terminate`(could be tes
 ```kotlin
 object Ints: LexicalBasics() {
   val int = numInt
-  val ints = Repeat(asList(), int suffix item(' '))
   val note = Until(int, asString(), white)
-  //^ not a goot approach
+  val ints = Repeat(asList(), int suffix item(' '))
+  //^ not a good approach
 }
 
 Ints.ints.read("10 20 30 45 ") //[10, 20, 30, 45]
@@ -265,9 +265,10 @@ Ints.note.rebuild(" \t\n233 666 ")?.rawString() //" \t\n"
 ```kotlin
 open class StringPart: LexicalBasics() {
   val escapes = mapOf('"' to '"', 'n' to '\n')
-  val bslash = item('\\')
-  val escape = MapPattern(escapes) prefix bslash
-  val char = Decide(anyChar and !(bslash or item('"')), escape).mergeFirst { if (it in escapes.values) 1 else 0 }
+  val backslash = item('\\')
+  val escape = MapPattern(escapes) prefix backslash
+
+  val char = Decide(!(backslash or item('"')), escape).mergeFirst { if (it in escapes.values) 1 else 0 }
   val string = SurroundBy(clamly(dquotes), Repeat(asString(), char))
 }
 
@@ -280,7 +281,7 @@ Inner class `Repeat.InBounds(bounds, greedy = true)` and `Repeat.Many()` are als
 
 `Fold` is a non-invertible operation (e.g. reading numbers by shifting), but providing an `unfold` operation back to `Iterable<IN>` will enable rebuilding for such fold-pattern
 
-Default unfold operation for `String` and `List` are provided
+Default unfold operation for `String` and `List` (actually `Iterable`) are provided
 
 ```kotlin
 // Improve: use LexicalBasics.digitFor & pat.ext.asInt()
@@ -302,7 +303,7 @@ int.show(2019) //2019 //String
 ```kotlin
 fun digitFor(cs: CharRange, zero: Char = '0', pad: Int = 0): Convert<Char, Char, Int>
   = Convert(elementIn(cs), { (it - zero) +pad }, { zero + (it -pad) })
-
+//^ a bit complicated
 
 data class NameWrapper(override val v: String): ConvertAs.Box<String>
 val name = Repeat(asString(), elementIn('a'..'z')) typed ::NameWrapper
@@ -312,7 +313,7 @@ name.rebuild("nihao") //nihao
 
 name.force<Char, NameWrapper/*T:T1*/, Any/*T1*/>().read("emmm") //NameWrapper(v=nihao) //Any
 
-// force() pattern must force-cast when show(v: Any)
+// force() pattern must run force-cast on show(v: Any)
 ```
 
 > See [hanCalc:Calc.kt](https://github.com/ParserKt/examples/blob/master/hanCalc/src/commonMain/kotlin/Calc.kt#L15) for more
@@ -340,7 +341,7 @@ a = Decide(paren, str).discardFirst()
 
 a.read("((hello))") //hello
 a.read("((a") //""
-//^ Decide fall-thru to str when ')' is missing, make right-paren clam() can explicit error
+//^ Decide fall-thru to str when ')' is missing, make right-paren clam() can produce explicit error
 ```
 
 ### Complex patterns "SJIT"
@@ -352,7 +353,7 @@ a.read("((a") //""
 > DSL operations: `Pattern.prefix`, `Pattern.suffix`
 
 ```kotlin
-val dot2 = item('.') suffix item('.').toDefault().toConstant('.')
+val dot2 = item('.') suffix item('.').toDefault()
 
 dot2.read(".") == dot2.read("..") //true
 dot2.rebuild(".") //..
@@ -377,19 +378,22 @@ list.read("hello,world") //[hello, world]
 > See [hanCalc:Calc.kt](https://github.com/ParserKt/examples/blob/master/hanCalc/src/commonMain/kotlin/Calc.kt#L48)
 
 ```kotlin
+//incomplete code
 val duoLine = int prefix item('\n')
 expr = InfixPattern(atom, ops).Rescue { s, base, op1 ->
   print("|")
   duoLine.read(s) ?: notParsed.also { s.error("expecting rhs for $base $op1") }
 }
-```
 
-```kotlin
+// ...in function main
 fun ps1() = print("> ")
 val input = CharInput.STDIN
 
-val line = Decide(expr, StickyEnd(EOF, 233)).discardFirst()
-val repl = JoinBy(item('\n'), line).OnItem { println("= $it"); ps1() }.mergeConstantJoin()
+val line = Decide(expr,
+  StickyEnd(EOF, 233)).discardFirst()
+val repl = JoinBy(item('\n'), line)
+  .OnItem { println("= $it"); ps1() }
+  .mergeConstantJoin()
 ```
 
 ```bash
@@ -427,6 +431,8 @@ Calc.ops["*"] = "*" infixl (-1) join Int::times
 Calc.expr.read("1+2*3") //7
 ```
 
+And we can also create a parser for right-associative chain:
+
 ```kotlin
 sealed class Type {
   data class Named(override val v: String): Type(), ConvertAs.Box<String>
@@ -461,7 +467,7 @@ For detailed information about `MapPattern`/`TriePattern`/`PairedTriePattern`, s
 
 <a id="About_mergeXXX">ParserKt</a> have many `Pattern<IN, Tuple2<A, B>>` — e.g. `Decide: ...<Int/*CaseNo*/, T>`, `Contextual: ...<A, B>`, `JoinBy: ...<ITEM, SEP>`
 
-But it's too complicated to create storage for them! So we can use `Convert`.
+But it's too complicated to create storage for them! So we can use `Convert` to extract only a certain part from `read` result.
 
 ```kotlin
 val abc123 = Decide(elementIn('1'..'3'), elementIn('a'..'c'))
@@ -500,7 +506,7 @@ i2.rebuild(1,1) //[1, 1] //List<Int>
 
 > See [PatternMisc.kt](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/PatternMisc.kt#L9)
 
-Using `CharInput.addErrorList` and `Input<IN>.addErrorList()` with (`SatisfyPattern`/`SatisfyEqualToPattern`).`clam(messager)`
+Using `Input<IN>.addErrorList()` / `CharInput.addErrorList()`, or (`SatisfyPattern`/`SatisfyEqualToPattern`).`clam(messager)`
 
 ```kotlin
 val (es, input) = inputOf("123").addErrorList()
@@ -513,8 +519,8 @@ es[0].first.tag //<string>:1:0
 ```kotlin
 val (es, input) = inputOf("hello", "world!", "---").addErrorList()
 input //Input:Slice("hello"...hello, |...
-satisfy<String> { it.endsWith("!") }.clam {"expecting ..!"}.read(input) //world!
-es //[(hello, expecting ..!)]
+satisfy<String>("..!") { it.endsWith("!") }.clam().read(input) //world!
+es //[(hello, expecting (..!))]
 ```
 
 Using `Pattern.clamWhile` and `Feed.clamWhile`
@@ -543,7 +549,7 @@ you can also use it with pseudo pattern `never()` (never parsed) and `always(val
 
 > See [PatternMisc.kt: interface State](https://github.com/ParserKt/ParserKt/blob/master/src/commonMain/kotlin/org/parserkt/pat/PatternMisc.kt#L55)
 
-Use `Input<IN>.withState(value)` and `CharInput.withState(value)` to create wrapper feed with certain `value` associated
+Use `Input<IN>.withState(value)` or `CharInput.withState(value)` to create wrapper feed with certain `value` associated
 
 ParserKt provides many `Pattern` receiving `Feed<IN>.() -> ...` as argument, use `AllFeed.stateAs<ST>(): ST?` to acquire state from `Feed<*>` instance.
 
@@ -594,7 +600,7 @@ val white = elementIn(' ', '\t').toConstant(' ')
 val sign = elementIn('+', '-').toDefault('+')
 ```
 
-"POPCorn" (rest 3 upper-cased denotes `OptionalPattern`, `PatternWrapper`, `ConstantPattern`)
+"POPCorn" (rest 3 upper-cased character denotes `OptionalPattern`, `PatternWrapper`, `ConstantPattern`)
 
 #### `toXXXPat`
 
@@ -616,5 +622,22 @@ Seq<IN=Char, Char, CharTuple>.toStringPat()
 
 ### Using `org.parserkt.pat.ext`
 
+> `NumUnit`, `LayoutPattern`, `DictTrie`, `GreedyPairedTrie`, ... [source](https://github.com/ParserKt/ParserKt/tree/master/parserkt-ext/src/commonMain/kotlin/org/parserkt/pat/ext)
+
+```kotlin
+val num = RepeatUn(asInt(), LexicalBasics.digitFor('0'..'9')) { it.toString().map { it-'0' } }
+val timeUnit = PairedKeywordPattern<Int>().apply { mergeStrings("s" to 1, "min" to 60, "hr" to 60*60) }
+val time = TrieNumUnit(num, timeUnit, IntOps)
+```
+
+```kotlin
+time.read("1hr") //3600
+time.show(60) //1min
+```
+
+For more examples of `pat.ext`, please view source files in [extendedSyntax](extendedSyntax)
++ `LayoutPattern` can be used for parsing Python-like `def :` , `if :` indentation-based blocks
++ `DictTrie` is a kind of `BackTrie` (also `PairedTriePattern`) with `back` reversed trie pattern
++ `GreedyPairedTrie` is a kind of `LazyPairedTrie`, it will translate all known words(`String`) to word-unknown-word list without tokenizer required
 
 #### _for more documents, see [ParserKt wiki](https://github.com/ParserKt/ParserKt/wiki/)_
