@@ -70,4 +70,5 @@ val hanNum = Decide(
   Convert(hanDigitsMap.toDefault(0) prefix item('十'), {it + 10}, {it - 10}),
   MapPattern(mapOf('零' to 0)),
   HanNum
-).mergeFirst { if (it in 10..19) 0 else if (it == 0) 1 else 2 }
+).mergeFirst { if (abs(it) in 10..19) 0 else if (it == 0) 1 else 2 }
+//^ Negative hanShow not supported

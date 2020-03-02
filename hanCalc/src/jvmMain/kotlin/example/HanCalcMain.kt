@@ -2,6 +2,8 @@ package example
 import AbstractHanCalc
 import hanNum
 
+import kotlin.math.abs
+
 import org.parserkt.*
 import org.parserkt.pat.*
 import org.parserkt.pat.complex.JoinBy
@@ -15,6 +17,6 @@ object HanCalc: AbstractHanCalc() {
     val line = Decide(expr, StickyEnd(EOF, 233)).discardFirst()
     val repl = JoinBy(item('\n'), line).OnItem { println("= $it"); ps1() }.mergeConstantJoin()
     val calcLogs = input.catchError { repl.read(input) }
-    calcLogs?.mapNotNull { it.toInt().let { hanNum.show(it) } }?.let(::println)
+    calcLogs?.mapNotNull { abs(it.toInt()).let { hanNum.show(it) } }?.let(::println)
   }
 }
